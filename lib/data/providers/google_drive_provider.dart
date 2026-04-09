@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
@@ -18,37 +19,46 @@ class GoogleDriveProvider {
   bool _isInitialized = false;
 
   Future<ReceiptUploadResult> uploadReceipt(File file) async {
-    final fileBytes = await file.readAsBytes();
-    final fileHash = md5.convert(fileBytes).toString();
+    try {
+      final fileBytes = await file.readAsBytes();
+      final fileHash = md5.convert(fileBytes).toString();
 
-    final client = await _buildAuthenticatedClient();
-    final driveApi = drive.DriveApi(client);
-    final folderId = await _ensureReceiptFolder(driveApi);
+      final client = await _buildAuthenticatedClient();
+      final driveApi = drive.DriveApi(client);
+      final folderId = await _ensureReceiptFolder(driveApi);
 
-    final fileName = file.uri.pathSegments.isNotEmpty
-        ? file.uri.pathSegments.last
-        : 'receipt_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName = file.uri.pathSegments.isNotEmpty
+          ? file.uri.pathSegments.last
+          : 'receipt_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-    final media = drive.Media(file.openRead(), await file.length());
-    final metadata = drive.File()
-      ..name = fileName
-      ..parents = [folderId]
-      ..appProperties = {'taxrefineManaged': 'true'};
+      final media = drive.Media(file.openRead(), await file.length());
+      final metadata = drive.File()
+        ..name = fileName
+        ..parents = [folderId]
+        ..appProperties = {'taxrefineManaged': 'true'};
 
-    final uploaded = await driveApi.files.create(
-      metadata,
-      uploadMedia: media,
-      $fields: 'id',
-    );
-
-    final fileId = uploaded.id;
-    if (fileId == null || fileId.isEmpty) {
-      throw const GoogleDriveUploadException(
-        'Google Drive upload completed without a file id.',
+      final uploaded = await driveApi.files.create(
+        metadata,
+        uploadMedia: media,
+        $fields: 'id',
       );
-    }
 
-    return ReceiptUploadResult(googleDriveFileId: fileId, fileHash: fileHash);
+      final fileId = uploaded.id;
+      if (fileId == null || fileId.isEmpty) {
+        throw const GoogleDriveUploadException(
+          'Google Drive upload completed without a file id.',
+        );
+      }
+
+      return ReceiptUploadResult(googleDriveFileId: fileId, fileHash: fileHash);
+    } on GoogleSignInException {
+      rethrow;
+    } on GoogleDriveUploadException {
+      rethrow;
+    } catch (ex) {
+      debugPrint('GoogleDriveProvider.uploadReceipt failed: $ex');
+      throw GoogleDriveUploadException(_mapDriveError(ex));
+    }
   }
 
   Future<String> _ensureReceiptFolder(drive.DriveApi driveApi) async {
@@ -105,10 +115,41 @@ class GoogleDriveProvider {
     if (_isInitialized) {
       return;
     }
-    await _googleSignIn.initialize(
-      clientId: ApiConstants.googleAndroidClientId,
-    );
+
+    final androidClientId = ApiConstants.googleAndroidClientId.trim();
+    if (Platform.isAndroid || androidClientId.isEmpty) {
+      await _googleSignIn.initialize(
+        serverClientId: ApiConstants.googleServerClientId,
+      );
+    } else {
+      await _googleSignIn.initialize(clientId: androidClientId);
+    }
     _isInitialized = true;
+  }
+
+  String _mapDriveError(Object ex) {
+    final message = ex.toString();
+    final normalized = message.toLowerCase();
+
+    if (normalized.contains('accessnotconfigured') ||
+        normalized.contains('drive api has not been used') ||
+        normalized.contains('api not enabled')) {
+      return 'Google Drive API is not enabled for this Google project.';
+    }
+
+    if (normalized.contains('insufficient permissions') ||
+        normalized.contains('insufficientpermission') ||
+        normalized.contains('403')) {
+      return 'Google Drive permission was denied. Please grant Drive access and try again.';
+    }
+
+    if (normalized.contains('network') ||
+        normalized.contains('socket') ||
+        normalized.contains('timed out')) {
+      return 'Network issue while uploading to Google Drive. Please retry.';
+    }
+
+    return 'Google Drive upload failed: $message';
   }
 }
 

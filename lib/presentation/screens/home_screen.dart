@@ -140,23 +140,30 @@ class HomeScreen extends StatelessWidget {
                                     },
                                   );
                                 },
-                            onSwipe: (previousIndex, currentIndex, direction) {
-                              if (direction == CardSwiperDirection.right) {
-                                context.read<TransactionCubit>().swipe(
-                                  isBusiness: true,
-                                  swipedIndex: previousIndex,
-                                );
-                                return true;
-                              }
-                              if (direction == CardSwiperDirection.left) {
-                                context.read<TransactionCubit>().swipe(
-                                  isBusiness: false,
-                                  swipedIndex: previousIndex,
-                                );
-                                return true;
-                              }
-                              return false;
-                            },
+                            onSwipe:
+                                (previousIndex, currentIndex, direction) async {
+                                  if (direction == CardSwiperDirection.right) {
+                                    final cubit = context
+                                        .read<TransactionCubit>();
+                                    final receiptFile = await _pickReceiptFile(
+                                      context,
+                                    );
+                                    return cubit.swipe(
+                                      isBusiness: true,
+                                      swipedIndex: previousIndex,
+                                      receiptFile: receiptFile,
+                                    );
+                                  }
+                                  if (direction == CardSwiperDirection.left) {
+                                    return context
+                                        .read<TransactionCubit>()
+                                        .swipe(
+                                          isBusiness: false,
+                                          swipedIndex: previousIndex,
+                                        );
+                                  }
+                                  return false;
+                                },
                           ),
                         ),
                       );
@@ -200,12 +207,12 @@ class HomeScreen extends StatelessWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: const Text(AppStrings.cameraOption),
+                title: const Text(AppStrings.takePhotoOption),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text(AppStrings.galleryOption),
+                title: const Text(AppStrings.uploadReceiptOption),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
             ],

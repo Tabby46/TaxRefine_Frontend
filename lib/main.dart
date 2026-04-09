@@ -5,12 +5,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taxrefine/core/constants/app_strings.dart';
 import 'package:taxrefine/core/theme/app_theme.dart';
 import 'package:taxrefine/core/network/dio_client.dart';
+import 'package:taxrefine/data/providers/auth_api_provider.dart';
 import 'package:taxrefine/data/providers/google_drive_provider.dart';
 import 'package:taxrefine/data/providers/transaction_api_provider.dart';
+import 'package:taxrefine/data/repositories/auth_repository.dart';
 import 'package:taxrefine/data/repositories/transaction_repository.dart';
+import 'package:taxrefine/logic/auth/auth_cubit.dart';
+import 'package:taxrefine/logic/auth/auth_state.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_cubit.dart';
 import 'package:taxrefine/presentation/screens/app_shell.dart';
+import 'package:taxrefine/presentation/screens/login_screen.dart';
 
 void main() {
   runApp(
@@ -26,6 +31,8 @@ class TaxRefineApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authApiProvider = AuthApiProvider();
+    final authRepository = AuthRepository(authApiProvider);
     final dioClient = DioClient();
     final apiProvider = TransactionApiProvider(dioClient);
     final googleDriveProvider = GoogleDriveProvider();
@@ -36,16 +43,36 @@ class TaxRefineApp extends StatelessWidget {
       theme: AppTheme.light(),
       builder: DevicePreview.appBuilder,
       locale: DevicePreview.locale(context),
-      home: MultiBlocProvider(
-        providers: [
-          BlocProvider(
-            create: (_) =>
-                TransactionCubit(repository, googleDriveProvider)
-                  ..loadPendingTransactions(),
-          ),
-          BlocProvider(create: (_) => HistoryCubit(repository)),
-        ],
-        child: const AppShell(),
+      home: BlocProvider(
+        create: (_) => AuthCubit(authRepository)..restoreSession(),
+        child: BlocBuilder<AuthCubit, AuthState>(
+          builder: (context, authState) {
+            if (authState is AuthLoading || authState is AuthInitial) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (authState is Authenticated) {
+              return MultiBlocProvider(
+                providers: [
+                  BlocProvider(
+                    create: (_) =>
+                        TransactionCubit(repository, googleDriveProvider)
+                          ..loadPendingTransactions(),
+                  ),
+                  BlocProvider(
+                    create: (_) =>
+                        HistoryCubit(repository, googleDriveProvider),
+                  ),
+                ],
+                child: const AppShell(),
+              );
+            }
+
+            return const LoginScreen();
+          },
+        ),
       ),
     );
   }

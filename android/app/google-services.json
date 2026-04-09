@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "822869974213",
+    "project_id": "taxrefine2",
+    "storage_bucket": "taxrefine2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:822869974213:android:1a5b0650525ccb6702a4ac",
+        "android_client_info": {
+          "package_name": "com.zultanite.taxrefine"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "822869974213-0476p3thmqkj01fmr2d8irmjimvj5oaf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zultanite.taxrefine",
+            "certificate_hash": "d990de933a761f76637e1543a4bd9f145ffad238"
+          }
+        },
+        {
+          "client_id": "822869974213-n6t87vahi5jc198sdqtr3v1bgmio74d3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzi2Ml1c6W2E-fB1LaM4zqB0fahyrPz4Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "822869974213-n6t87vahi5jc198sdqtr3v1bgmio74d3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

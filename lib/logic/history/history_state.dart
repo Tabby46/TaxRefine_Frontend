@@ -25,6 +25,18 @@ final class HistoryLoaded extends HistoryState {
   List<Object?> get props => [transactions];
 }
 
+final class HistoryUploadingReceipt extends HistoryLoaded {
+  const HistoryUploadingReceipt(
+    super.transactions, {
+    required this.uploadingTransactionId,
+  });
+
+  final String uploadingTransactionId;
+
+  @override
+  List<Object?> get props => [...super.props, uploadingTransactionId];
+}
+
 final class HistoryError extends HistoryState {
   const HistoryError(this.message);
 
