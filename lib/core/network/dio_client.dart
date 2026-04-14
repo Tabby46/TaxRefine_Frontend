@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:taxrefine/core/auth/auth_session.dart';
 import 'package:taxrefine/core/constants/api_constants.dart';
 
@@ -19,10 +20,10 @@ class DioClient {
     this.dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          final effectiveUserId = AuthSession.userId ?? _userId;
-          options.headers['X-User-Id'] = _isValidUuid(effectiveUserId)
-              ? effectiveUserId
-              : ApiConstants.defaultUserId;
+          final effectiveUserId = ApiConstants.resolveUserId(
+            AuthSession.userId ?? _userId,
+          );
+          options.headers['X-User-Id'] = effectiveUserId;
 
           final jwt = AuthSession.jwt;
           if (jwt != null && jwt.isNotEmpty) {
@@ -31,6 +32,25 @@ class DioClient {
 
           handler.next(options);
         },
+        onResponse: (response, handler) {
+          if (kDebugMode && _isTransactionRequest(response.requestOptions)) {
+            debugPrint(
+              '[API][TRANSACTIONS] ${response.requestOptions.method} '
+              '${response.requestOptions.path} -> ${response.statusCode}',
+            );
+          }
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          if (kDebugMode && _isTransactionRequest(error.requestOptions)) {
+            debugPrint(
+              '[API][TRANSACTIONS][ERROR] ${error.requestOptions.method} '
+              '${error.requestOptions.path} -> ${error.response?.statusCode ?? 'NO_STATUS'} '
+              '(${error.type.name})',
+            );
+          }
+          handler.next(error);
+        },
       ),
     );
   }
@@ -38,10 +58,7 @@ class DioClient {
   final Dio dio;
   final String _userId;
 
-  static bool _isValidUuid(String value) {
-    final uuidRegex = RegExp(
-      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
-    );
-    return uuidRegex.hasMatch(value);
+  bool _isTransactionRequest(RequestOptions options) {
+    return options.path.contains('/transactions');
   }
 }

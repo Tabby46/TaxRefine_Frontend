@@ -17,6 +17,28 @@ class TransactionApiProvider {
     );
   }
 
+  Future<Response<dynamic>> fetchUserTransactionsPage({
+    required String userId,
+    String? taxCategory,
+    required int page,
+    required int size,
+  }) {
+    final query = <String, dynamic>{
+      'page': page,
+      'size': size,
+      'sort': 'transactionDate,desc',
+    };
+
+    if (taxCategory != null && taxCategory.isNotEmpty) {
+      query['tax_category'] = taxCategory;
+    }
+
+    return _dioClient.dio.get(
+      '/transactions/user/$userId',
+      queryParameters: query,
+    );
+  }
+
   Future<Response<dynamic>> swipeTransaction({
     required String transactionId,
     required bool isBusiness,
@@ -71,6 +93,16 @@ class TransactionApiProvider {
         'receiptFileName': receiptFileName,
         'receiptMimeType': receiptMimeType,
       },
+    );
+  }
+
+  Future<Response<dynamic>> updateTransactionTaxCategory({
+    required String transactionId,
+    required String taxCategory,
+  }) {
+    return _dioClient.dio.patch(
+      '/transactions/$transactionId',
+      data: {'taxCategory': taxCategory},
     );
   }
 }

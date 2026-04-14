@@ -2,6 +2,7 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:taxrefine/core/constants/app_strings.dart';
 import 'package:taxrefine/core/theme/app_theme.dart';
 import 'package:taxrefine/core/network/dio_client.dart';
@@ -17,7 +18,12 @@ import 'package:taxrefine/logic/transactions/transaction_cubit.dart';
 import 'package:taxrefine/presentation/screens/app_shell.dart';
 import 'package:taxrefine/presentation/screens/login_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env').catchError((_) {
+    // Optional for local/dev environments where .env may not exist.
+  });
+
   runApp(
     DevicePreview(
       enabled: kDebugMode,

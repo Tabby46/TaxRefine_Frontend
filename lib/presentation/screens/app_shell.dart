@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:taxrefine/core/auth/auth_session.dart';
 import 'package:taxrefine/core/constants/app_strings.dart';
+import 'package:taxrefine/data/models/user_model.dart';
 import 'package:taxrefine/logic/auth/auth_cubit.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/presentation/screens/history_screen.dart';
 import 'package:taxrefine/presentation/screens/home_screen.dart';
+import 'package:taxrefine/presentation/screens/profile_screen.dart';
+import 'package:taxrefine/presentation/screens/transaction_dashboard_screen.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -16,12 +20,36 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
 
+  UserModel _buildCurrentUser() {
+    final userId = AuthSession.userId ?? '';
+    final email = AuthSession.email ?? 'unknown@taxrefine.app';
+    final name =
+        (AuthSession.name != null && AuthSession.name!.trim().isNotEmpty)
+        ? AuthSession.name!
+        : (email.contains('@') ? email.split('@').first : 'User');
+
+    return UserModel(
+      id: userId,
+      name: name,
+      email: email,
+      plaidLinkActive: false,
+      institutionName: null,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final currentUser = _buildCurrentUser();
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: const [HomeScreen(), HistoryScreen()],
+        children: [
+          const HomeScreen(),
+          const HistoryScreen(),
+          const TransactionDashboardScreen(),
+          ProfileScreen(user: currentUser),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.read<AuthCubit>().signOut(),
@@ -30,6 +58,10 @@ class _AppShellState extends State<AppShell> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        selectedItemColor: const Color(0xFF0B6E4F),
+        unselectedItemColor: Colors.grey.shade700,
+        showUnselectedLabels: true,
+        backgroundColor: Colors.white,
         onTap: (index) {
           setState(() => _currentIndex = index);
           if (index == 1) {
@@ -44,6 +76,14 @@ class _AppShellState extends State<AppShell> {
           BottomNavigationBarItem(
             icon: Icon(Icons.history_rounded),
             label: AppStrings.tabHistory,
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_rounded),
+            label: AppStrings.tabDashboard,
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            label: AppStrings.tabProfile,
           ),
         ],
       ),

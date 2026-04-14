@@ -6,19 +6,130 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:taxrefine/core/auth/auth_session.dart';
+import 'package:taxrefine/core/constants/api_constants.dart';
 import 'package:taxrefine/core/constants/app_strings.dart';
+import 'package:taxrefine/core/network/dio_client.dart';
+import 'package:taxrefine/data/services/plaid_integration_service.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_state.dart';
 import 'package:taxrefine/presentation/widgets/transaction_card.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _isPlaidLinking = false;
+  bool _isPlaidSyncing = false;
+
+  Future<void> _pollPendingTransactionsAfterLink() async {
+    final cubit = context.read<TransactionCubit>();
+    const maxAttempts = 6;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      await cubit.loadPendingTransactions();
+      final currentState = cubit.state;
+
+      if (currentState is TransactionLoaded &&
+          currentState.transactions.isNotEmpty) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.swipeSyncCompleted)),
+        );
+        return;
+      }
+
+      if (attempt < maxAttempts - 1) {
+        await Future<void>.delayed(const Duration(seconds: 5));
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(AppStrings.swipeSyncStillRunning)),
+    );
+  }
+
+  Future<void> _connectBankAccount() async {
+    if (_isPlaidLinking) {
+      return;
+    }
+
+    setState(() {
+      _isPlaidLinking = true;
+    });
+
+    final userId = ApiConstants.resolveUserId(AuthSession.userId);
+    final plaidService = PlaidIntegrationService(
+      dioClient: DioClient(),
+      context: context,
+    );
+
+    final status = await plaidService.openPlaidLink(
+      userId,
+      onSyncStateChanged: (isSyncing) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isPlaidSyncing = isSyncing;
+        });
+      },
+      onEventTracked: (eventName, metadata) {
+        debugPrint('Plaid event: $eventName | metadata: $metadata');
+      },
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isPlaidLinking = false;
+    });
+
+    if (status == PlaidLinkFlowStatus.linked) {
+      context.read<HistoryCubit>().loadHistory();
+      setState(() => _isPlaidSyncing = true);
+      await _pollPendingTransactionsAfterLink();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isPlaidSyncing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.dashboardRefreshBannerMessage)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.swipeScreenTitle)),
+      appBar: AppBar(
+        title: const Text(AppStrings.swipeScreenTitle),
+        actions: [
+          IconButton(
+            tooltip: AppStrings.plaidConnectTooltip,
+            icon: _isPlaidLinking
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                  )
+                : const Icon(Icons.account_balance),
+            onPressed: _isPlaidLinking ? null : _connectBankAccount,
+          ),
+        ],
+      ),
       body: BlocListener<TransactionCubit, TransactionState>(
         listenWhen: (previous, current) {
           if (current is! TransactionLoaded) {
@@ -76,6 +187,11 @@ class HomeScreen extends StatelessWidget {
 
             return Column(
               children: [
+                if (_isPlaidSyncing)
+                  const LinearProgressIndicator(
+                    minHeight: 3,
+                    semanticsLabel: AppStrings.plaidSyncingData,
+                  ),
                 if (isUploading) const LinearProgressIndicator(minHeight: 3),
                 Expanded(
                   child: LayoutBuilder(

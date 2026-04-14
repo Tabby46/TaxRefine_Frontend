@@ -1,9 +1,15 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConstants {
-  // Automatically switch between Android Emulator and iOS/Web/Physical Device
+  // Reads BACKEND_BASE_URL from .env; falls back to sensible local defaults.
   static String get baseUrl {
+    final fromEnv = dotenv.env['BACKEND_BASE_URL']?.trim() ?? '';
+    if (fromEnv.isNotEmpty) {
+      return fromEnv;
+    }
+
     if (kIsWeb) {
       return 'http://localhost:9090/api/v1';
     }
@@ -15,6 +21,15 @@ class ApiConstants {
   }
 
   static const String defaultUserId = '00000000-0000-0000-0000-000000000001';
+
+  static String resolveUserId(String? rawUserId) {
+    final candidate = rawUserId?.trim() ?? '';
+    final uuidRegex = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+    );
+    return uuidRegex.hasMatch(candidate) ? candidate : defaultUserId;
+  }
+
   // On Android we prefer google-services.json package/SHA binding.
   static const String googleAndroidClientId = String.fromEnvironment(
     'GOOGLE_ANDROID_CLIENT_ID',

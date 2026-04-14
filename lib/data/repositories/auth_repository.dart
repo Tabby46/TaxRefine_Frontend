@@ -35,6 +35,7 @@ class AuthRepository {
     final jwt = (payload['jwt'] as String?) ?? '';
     final userId = (payload['userId'] as String?) ?? '';
     final email = (payload['email'] as String?) ?? '';
+    final name = (payload['name'] as String?) ?? '';
 
     if (jwt.isEmpty || userId.isEmpty) {
       throw const AuthException('Server auth response is missing JWT/user id');
@@ -43,6 +44,7 @@ class AuthRepository {
     AuthSession.jwt = jwt;
     AuthSession.userId = userId;
     AuthSession.email = email;
+    AuthSession.name = name;
   }
 
   Future<void> signOut() async {
