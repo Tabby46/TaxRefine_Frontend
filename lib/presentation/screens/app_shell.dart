@@ -19,6 +19,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
+  final ValueNotifier<int> _dashboardRefreshNotifier = ValueNotifier<int>(0);
 
   UserModel _buildCurrentUser() {
     final userId = AuthSession.userId ?? '';
@@ -38,6 +39,12 @@ class _AppShellState extends State<AppShell> {
   }
 
   @override
+  void dispose() {
+    _dashboardRefreshNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final currentUser = _buildCurrentUser();
 
@@ -47,7 +54,7 @@ class _AppShellState extends State<AppShell> {
         children: [
           const HomeScreen(),
           const HistoryScreen(),
-          const TransactionDashboardScreen(),
+          TransactionDashboardScreen(refreshNotifier: _dashboardRefreshNotifier),
           ProfileScreen(user: currentUser),
         ],
       ),
@@ -66,6 +73,9 @@ class _AppShellState extends State<AppShell> {
           setState(() => _currentIndex = index);
           if (index == 1) {
             context.read<HistoryCubit>().loadHistory();
+          }
+          if (index == 2) {
+            _dashboardRefreshNotifier.value++;
           }
         },
         items: const [

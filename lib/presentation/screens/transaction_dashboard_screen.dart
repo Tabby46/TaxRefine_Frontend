@@ -11,7 +11,9 @@ import 'package:taxrefine/data/models/transaction_page_result.dart';
 import 'package:taxrefine/data/providers/transaction_api_provider.dart';
 
 class TransactionDashboardScreen extends StatefulWidget {
-  const TransactionDashboardScreen({super.key});
+  const TransactionDashboardScreen({super.key, this.refreshNotifier});
+
+  final ValueNotifier<int>? refreshNotifier;
 
   @override
   State<TransactionDashboardScreen> createState() =>
@@ -45,14 +47,20 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
     _scrollController.addListener(_onScroll);
+    widget.refreshNotifier?.addListener(_onExternalRefresh);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _showRefreshHintIfNeeded(),
     );
     _loadFirstPage();
   }
 
+  void _onExternalRefresh() {
+    _loadFirstPage();
+  }
+
   @override
   void dispose() {
+    widget.refreshNotifier?.removeListener(_onExternalRefresh);
     _pullHintController.dispose();
     _scrollController
       ..removeListener(_onScroll)
