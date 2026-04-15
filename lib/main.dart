@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:taxrefine/core/constants/app_strings.dart';
 import 'package:taxrefine/core/theme/app_theme.dart';
 import 'package:taxrefine/core/network/dio_client.dart';
@@ -15,6 +16,8 @@ import 'package:taxrefine/logic/auth/auth_cubit.dart';
 import 'package:taxrefine/logic/auth/auth_state.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_cubit.dart';
+import 'package:taxrefine/features/profile/cubit/bank_connection_cubit.dart';
+import 'package:taxrefine/core/network/api_service.dart';
 import 'package:taxrefine/presentation/screens/app_shell.dart';
 import 'package:taxrefine/presentation/screens/login_screen.dart';
 
@@ -70,6 +73,9 @@ class TaxRefineApp extends StatelessWidget {
                   BlocProvider(
                     create: (_) =>
                         HistoryCubit(repository, googleDriveProvider),
+                  ),
+                  BlocProvider(
+                    create: (_) => BankConnectionCubit(apiService: ApiService(client: http.Client())),
                   ),
                 ],
                 child: const AppShell(),

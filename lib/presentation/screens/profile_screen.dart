@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taxrefine/core/auth/auth_session.dart';
 import 'package:taxrefine/core/constants/api_constants.dart';
 import 'package:taxrefine/core/constants/app_strings.dart';
 import 'package:taxrefine/core/network/dio_client.dart';
 import 'package:taxrefine/data/models/user_model.dart';
 import 'package:taxrefine/data/services/plaid_integration_service.dart';
+import 'package:taxrefine/features/profile/cubit/bank_connection_cubit.dart';
+import 'package:taxrefine/features/profile/screens/linked_banks_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({required this.user, super.key});
@@ -67,25 +70,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: [
-          _UserHeader(user: _user),
-          const SizedBox(height: 20),
-          Text(
-            'Linked Financial Institutions',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          _user.plaidLinkActive
-              ? _LinkedInstitutionCard(
-                  institutionName: _user.institutionName ?? 'Chase',
-                  isLoading: _isLinking,
-                  onRelink: _connectOrRelinkBank,
-                )
-              : _NoBankPlaceholder(
-                  isLoading: _isLinking,
-                  onConnect: _connectOrRelinkBank,
-                ),
-        ],
+         children: [
+           _UserHeader(user: _user),
+           const SizedBox(height: 32),
+
+           const _SectionHeader(title: 'Accounts & Security'),
+           const SizedBox(height: 8),
+
+           _SettingsTile(
+             icon: Icons.account_balance,
+             title: 'Linked Bank Accounts',
+             onTap: () {
+               Navigator.push(
+                 context,
+                 MaterialPageRoute(
+                   builder: (_) => BlocProvider.value(
+                     value: context.read<BankConnectionCubit>(),
+                     child: const LinkedBanksScreen(),
+                   ),
+                 ),
+               );
+             },
+           ),
+
+           const _SettingsTile(
+             icon: Icons.edit,
+             title: 'Edit Profile',
+           ),
+
+           const _SettingsTile(
+             icon: Icons.notifications,
+             title: 'Notifications',
+           ),
+
+           const _SettingsTile(
+             icon: Icons.lock,
+             title: 'Privacy & Security',
+           ),
+
+           const SizedBox(height: 32),
+
+           const _SectionHeader(title: 'Other'),
+           const SizedBox(height: 8),
+
+           const _SettingsTile(
+             icon: Icons.help,
+             title: 'Help & Support',
+           ),
+
+           const _SettingsTile(
+             icon: Icons.logout,
+             title: 'Log Out',
+             color: Colors.red,
+           ),
+         ],
       ),
     );
   }
@@ -192,6 +230,63 @@ class _NoBankPlaceholder extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).colorScheme.primary,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback? onTap;
+  final Color? color;
+
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    this.onTap,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: (color ?? Theme.of(context).colorScheme.primary).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color ?? Theme.of(context).colorScheme.primary),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+          color: color,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right, size: 20),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(vertical: 4),
     );
   }
 }

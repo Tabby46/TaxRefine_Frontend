@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taxrefine/core/auth/auth_session.dart';
 import 'package:taxrefine/core/constants/app_strings.dart';
 import 'package:taxrefine/data/models/user_model.dart';
-import 'package:taxrefine/logic/auth/auth_cubit.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/presentation/screens/history_screen.dart';
 import 'package:taxrefine/presentation/screens/home_screen.dart';
@@ -57,11 +56,6 @@ class _AppShellState extends State<AppShell> {
           TransactionDashboardScreen(refreshNotifier: _dashboardRefreshNotifier),
           ProfileScreen(user: currentUser),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.read<AuthCubit>().signOut(),
-        icon: const Icon(Icons.logout_rounded),
-        label: const Text(AppStrings.logout),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
