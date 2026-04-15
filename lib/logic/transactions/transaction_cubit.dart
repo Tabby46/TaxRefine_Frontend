@@ -21,7 +21,11 @@ class TransactionCubit extends Cubit<TransactionState> {
     emit(const TransactionLoading());
     try {
       final items = await _repository.getPendingTransactions();
-      final pending = items.where((item) => item.isBusiness == null).toList();
+      // Fixed: Show all transactions that need review, regardless of isBusiness status
+      final pending = items.where((item) => 
+        item.taxCategory == null || 
+        item.taxCategory == 'NEEDS_REVIEW'
+      ).toList();
       emit(TransactionLoaded(transactions: pending));
     } catch (_) {
       emit(const TransactionError(AppStrings.loadingTransactionsFailed));

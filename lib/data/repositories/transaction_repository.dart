@@ -35,6 +35,13 @@ class TransactionRepositoryImpl implements TransactionRepository {
     try {
       final response = await _apiProvider.fetchPendingTransactions();
       final payload = response.data;
+      
+      // Debug logging for empty responses
+      print('[TransactionRepository] GET /transactions returned: ${payload.runtimeType}, length: ${payload is List ? payload.length : "N/A"}');
+      if (payload is List && payload.isEmpty) {
+        print('[TransactionRepository] WARNING: Received empty transaction list from backend');
+      }
+      
       if (payload is List<dynamic>) {
         return payload
             .whereType<Map<String, dynamic>>()
@@ -42,7 +49,8 @@ class TransactionRepositoryImpl implements TransactionRepository {
             .toList();
       }
       return const [];
-    } on DioException {
+    } on DioException catch (e) {
+      print('[TransactionRepository] API Error: ${e.response?.statusCode} ${e.message}');
       rethrow;
     }
   }
