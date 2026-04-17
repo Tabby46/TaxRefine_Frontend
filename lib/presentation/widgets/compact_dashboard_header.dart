@@ -139,9 +139,6 @@ class CompactDashboardHeader extends StatelessWidget {
                 fontStyle: FontStyle.italic,
               ),
             ),
-            const SizedBox(height: 16),
-            // Progress Bar: Review Percentage
-            _buildProgressBar(reviewPercentage),
           ],
         ),
       ),

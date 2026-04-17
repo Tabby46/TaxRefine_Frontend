@@ -315,7 +315,7 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
                               ),
                               const SizedBox(height: 12),
                               SizedBox(
-                                height: 180,
+                                height: 220,
                                 child: DeductionPieChart(
                                   categories: _categories,
                                   totalAmount: state.summary.totalDeductions,
@@ -323,6 +323,7 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
                                       _navigateToCategoryHistory(categoryId),
                                 ),
                               ),
+                              const SizedBox(height: 16),
                             ],
                           ),
                         )
