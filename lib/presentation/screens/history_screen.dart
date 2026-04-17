@@ -11,12 +11,18 @@ import 'package:taxrefine/logic/history/history_state.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HistoryScreen extends StatelessWidget {
-  const HistoryScreen({super.key});
+  const HistoryScreen({super.key, this.categoryIdFilter});
+
+  final int? categoryIdFilter;
 
   @override
   Widget build(BuildContext context) {
+    final screenTitle = categoryIdFilter != null
+        ? 'Category: ${_getCategoryName(categoryIdFilter!)}'
+        : AppStrings.historyScreenTitle;
+
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.historyScreenTitle)),
+      appBar: AppBar(title: Text(screenTitle)),
       body: BlocBuilder<HistoryCubit, HistoryState>(
         builder: (context, state) {
           if (state is HistoryInitial || state is HistoryLoading) {
@@ -31,7 +37,15 @@ class HistoryScreen extends StatelessWidget {
           final uploadingTransactionId = state is HistoryUploadingReceipt
               ? state.uploadingTransactionId
               : null;
-          if (loaded.transactions.isEmpty) {
+
+          // Filter transactions by categoryId if filter is provided
+          final filteredTransactions = categoryIdFilter != null
+              ? loaded.transactions
+                    .where((t) => t.categoryId == categoryIdFilter)
+                    .toList()
+              : loaded.transactions;
+
+          if (filteredTransactions.isEmpty) {
             return const _HistoryEmptyState();
           }
 
@@ -40,9 +54,9 @@ class HistoryScreen extends StatelessWidget {
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(12),
-              itemCount: loaded.transactions.length,
+              itemCount: filteredTransactions.length,
               itemBuilder: (context, index) {
-                final transaction = loaded.transactions[index];
+                final transaction = filteredTransactions[index];
                 return _HistoryListTile(
                   transaction: transaction,
                   isUploadingReceipt: uploadingTransactionId == transaction.id,
@@ -55,6 +69,22 @@ class HistoryScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String _getCategoryName(int categoryId) {
+    return switch (categoryId) {
+      1 => 'Travel',
+      2 => 'Meals',
+      3 => 'Office Supplies',
+      4 => 'Software',
+      5 => 'Phone',
+      6 => 'Internet',
+      7 => 'Building',
+      8 => 'Utilities',
+      9 => 'Equipment',
+      10 => 'Other Business',
+      _ => 'Category $categoryId',
+    };
   }
 
   Future<void> _handleAttachMissingReceipt(

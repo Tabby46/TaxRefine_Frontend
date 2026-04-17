@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taxrefine/core/auth/auth_session.dart';
+import 'package:taxrefine/core/constants/api_constants.dart';
 import 'package:taxrefine/core/constants/app_strings.dart';
 import 'package:taxrefine/data/models/user_model.dart';
+import 'package:taxrefine/logic/dashboard/dashboard_summary_cubit.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/presentation/screens/history_screen.dart';
 import 'package:taxrefine/presentation/screens/home_screen.dart';
@@ -46,6 +48,7 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final currentUser = _buildCurrentUser();
+    final userId = ApiConstants.resolveUserId(AuthSession.userId);
 
     return Scaffold(
       body: IndexedStack(
@@ -53,7 +56,9 @@ class _AppShellState extends State<AppShell> {
         children: [
           const HomeScreen(),
           const HistoryScreen(),
-          TransactionDashboardScreen(refreshNotifier: _dashboardRefreshNotifier),
+          TransactionDashboardScreen(
+            refreshNotifier: _dashboardRefreshNotifier,
+          ),
           ProfileScreen(user: currentUser),
         ],
       ),
@@ -70,6 +75,8 @@ class _AppShellState extends State<AppShell> {
           }
           if (index == 2) {
             _dashboardRefreshNotifier.value++;
+            // Load the summary when navigating to the dashboard tab
+            context.read<DashboardSummaryCubit>().loadSummary(userId);
           }
         },
         items: const [

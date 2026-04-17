@@ -11,6 +11,7 @@ import 'package:taxrefine/core/constants/api_constants.dart';
 import 'package:taxrefine/core/constants/app_strings.dart';
 import 'package:taxrefine/core/network/dio_client.dart';
 import 'package:taxrefine/data/services/plaid_integration_service.dart';
+import 'package:taxrefine/logic/dashboard/dashboard_summary_cubit.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_state.dart';
@@ -146,6 +147,10 @@ class _HomeScreenState extends State<HomeScreen> {
             if (state.feedbackType == TransactionFeedbackType.info) {
               context.read<HistoryCubit>().loadHistory();
             }
+
+            // Refresh the dashboard summary after any successful swipe
+            final userId = ApiConstants.resolveUserId(AuthSession.userId);
+            context.read<DashboardSummaryCubit>().refreshSummary(userId);
 
             final isSuccess =
                 state.feedbackType == TransactionFeedbackType.success;

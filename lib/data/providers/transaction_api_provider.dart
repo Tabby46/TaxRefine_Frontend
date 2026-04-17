@@ -105,4 +105,18 @@ class TransactionApiProvider {
       data: {'taxCategory': taxCategory},
     );
   }
+
+  Future<Response<dynamic>> fetchDeductionSummary({required String userId}) {
+    return _dioClient.dio.get(
+      '/transactions/summary',
+      queryParameters: {'userId': userId},
+    );
+  }
+
+  Future<Response<dynamic>> fetchReviewStatus({required String userId}) {
+    return _dioClient.dio.get(
+      '/transactions/review-status',
+      queryParameters: {'userId': userId},
+    );
+  }
 }

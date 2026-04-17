@@ -70,60 +70,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
         padding: const EdgeInsets.all(16),
-         children: [
-           _UserHeader(user: _user),
-           const SizedBox(height: 32),
+        children: [
+          _UserHeader(user: _user),
+          const SizedBox(height: 32),
 
-           const _SectionHeader(title: 'Accounts & Security'),
-           const SizedBox(height: 8),
+          const _SectionHeader(title: 'Accounts & Security'),
+          const SizedBox(height: 8),
 
-           _SettingsTile(
-             icon: Icons.account_balance,
-             title: 'Linked Bank Accounts',
-             onTap: () {
-               Navigator.push(
-                 context,
-                 MaterialPageRoute(
-                   builder: (_) => BlocProvider.value(
-                     value: context.read<BankConnectionCubit>(),
-                     child: const LinkedBanksScreen(),
-                   ),
-                 ),
-               );
-             },
-           ),
+          _SettingsTile(
+            icon: Icons.account_balance,
+            title: 'Linked Bank Accounts',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider.value(
+                    value: context.read<BankConnectionCubit>(),
+                    child: const LinkedBanksScreen(),
+                  ),
+                ),
+              );
+            },
+          ),
 
-           const _SettingsTile(
-             icon: Icons.edit,
-             title: 'Edit Profile',
-           ),
+          const _SettingsTile(icon: Icons.edit, title: 'Edit Profile'),
 
-           const _SettingsTile(
-             icon: Icons.notifications,
-             title: 'Notifications',
-           ),
+          const _SettingsTile(
+            icon: Icons.notifications,
+            title: 'Notifications',
+          ),
 
-           const _SettingsTile(
-             icon: Icons.lock,
-             title: 'Privacy & Security',
-           ),
+          const _SettingsTile(icon: Icons.lock, title: 'Privacy & Security'),
 
-           const SizedBox(height: 32),
+          const SizedBox(height: 32),
 
-           const _SectionHeader(title: 'Other'),
-           const SizedBox(height: 8),
+          const _SectionHeader(title: 'Other'),
+          const SizedBox(height: 8),
 
-           const _SettingsTile(
-             icon: Icons.help,
-             title: 'Help & Support',
-           ),
+          const _SettingsTile(icon: Icons.help, title: 'Help & Support'),
 
-           const _SettingsTile(
-             icon: Icons.logout,
-             title: 'Log Out',
-             color: Colors.red,
-           ),
-         ],
+          const _SettingsTile(
+            icon: Icons.logout,
+            title: 'Log Out',
+            color: Colors.red,
+          ),
+        ],
       ),
     );
   }
@@ -272,17 +263,19 @@ class _SettingsTile extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: (color ?? Theme.of(context).colorScheme.primary).withOpacity(0.1),
+          color: (color ?? Theme.of(context).colorScheme.primary).withOpacity(
+            0.1,
+          ),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: color ?? Theme.of(context).colorScheme.primary),
+        child: Icon(
+          icon,
+          color: color ?? Theme.of(context).colorScheme.primary,
+        ),
       ),
       title: Text(
         title,
-        style: TextStyle(
-          fontWeight: FontWeight.w500,
-          color: color,
-        ),
+        style: TextStyle(fontWeight: FontWeight.w500, color: color),
       ),
       trailing: const Icon(Icons.chevron_right, size: 20),
       onTap: onTap,

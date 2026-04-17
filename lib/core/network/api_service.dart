@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:taxrefine/core/auth/auth_session.dart';
 import 'package:taxrefine/core/models/bank_connection.dart';
 
 class ApiService {
@@ -35,15 +36,15 @@ class ApiService {
   }
 
   Future<Map<String, String>> _getHeaders() async {
-    // TODO: Add actual auth token retrieval
+    final token = await _getAuthToken();
     return {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ${await _getAuthToken()}',
+      if (token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
   Future<String> _getAuthToken() async {
-    // TODO: Implement actual token storage retrieval
-    return '';
+    // Get JWT from auth session
+    return AuthSession.jwt ?? '';
   }
 }

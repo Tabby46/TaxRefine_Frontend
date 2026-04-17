@@ -14,6 +14,7 @@ import 'package:taxrefine/data/repositories/auth_repository.dart';
 import 'package:taxrefine/data/repositories/transaction_repository.dart';
 import 'package:taxrefine/logic/auth/auth_cubit.dart';
 import 'package:taxrefine/logic/auth/auth_state.dart';
+import 'package:taxrefine/logic/dashboard/dashboard_summary_cubit.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_cubit.dart';
 import 'package:taxrefine/features/profile/cubit/bank_connection_cubit.dart';
@@ -75,7 +76,12 @@ class TaxRefineApp extends StatelessWidget {
                         HistoryCubit(repository, googleDriveProvider),
                   ),
                   BlocProvider(
-                    create: (_) => BankConnectionCubit(apiService: ApiService(client: http.Client())),
+                    create: (_) => BankConnectionCubit(
+                      apiService: ApiService(client: http.Client()),
+                    ),
+                  ),
+                  BlocProvider(
+                    create: (_) => DashboardSummaryCubit(apiProvider),
                   ),
                 ],
                 child: const AppShell(),
