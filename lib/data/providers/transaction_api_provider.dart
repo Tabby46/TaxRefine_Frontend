@@ -119,4 +119,11 @@ class TransactionApiProvider {
       queryParameters: {'userId': userId},
     );
   }
+
+  Future<Response<dynamic>> fetchCategoryBreakdown({required String userId}) {
+    return _dioClient.dio.get(
+      '/transactions/category-breakdown',
+      queryParameters: {'userId': userId},
+    );
+  }
 }

@@ -50,24 +50,26 @@ class DeductionPieChart extends StatelessWidget {
   }
 
   List<PieChartSectionData> _buildPieSections() {
+    final sumCategories = categories.fold<double>(0, (sum, cat) => sum + cat.totalAmount);
+    
     return categories.asMap().entries.map((entry) {
       final index = entry.key;
       final category = entry.value;
       final color = chartColors[index % chartColors.length];
-      final percentage = (category.totalAmount / totalAmount) * 100;
+      final percentage = sumCategories > 0 ? (category.totalAmount / sumCategories) * 100 : 0;
 
       return PieChartSectionData(
         color: color,
         value: category.totalAmount,
         title: percentage > 5 ? '${percentage.toStringAsFixed(0)}%' : '',
-        radius: 100,
+        radius: 80,
         titleStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
         badgeWidget: _Badge(category.categoryName, color: color, fontSize: 12),
-        badgePositionPercentageOffset: 1.2,
+        badgePositionPercentageOffset: 1.12,
       );
     }).toList();
   }

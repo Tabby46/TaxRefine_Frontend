@@ -14,6 +14,7 @@ import 'package:taxrefine/data/models/transaction_page_result.dart';
 import 'package:taxrefine/data/providers/transaction_api_provider.dart';
 import 'package:taxrefine/logic/dashboard/dashboard_category_service.dart';
 import 'package:taxrefine/logic/dashboard/dashboard_summary_cubit.dart';
+import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/presentation/screens/history_screen.dart';
 import 'package:taxrefine/presentation/widgets/category_breakdown_list.dart';
 import 'package:taxrefine/presentation/widgets/compact_dashboard_header.dart';
@@ -241,10 +242,14 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
   }
 
   void _navigateToCategoryHistory(int categoryId) {
+    final historyCubit = context.read<HistoryCubit>();
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => HistoryScreen(categoryIdFilter: categoryId),
+        builder: (context) => BlocProvider.value(
+          value: historyCubit,
+          child: HistoryScreen(categoryIdFilter: categoryId),
+        ),
       ),
     );
   }
@@ -260,10 +265,13 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
         listener: (context, state) async {
           if (state is DashboardSummaryLoaded) {
             // Generate dynamic category breakdown when summary loads
+            final userId = ApiConstants.resolveUserId(AuthSession.userId);
             final categories =
                 await DashboardCategoryService.generateCategoryBreakdown(
                   totalDeductions: state.summary.totalDeductions,
                   totalTransactionsCount: state.summary.totalTransactionsCount,
+                  userId: userId,
+                  apiProvider: _apiProvider,
                 );
             if (mounted) {
               setState(() {
@@ -687,12 +695,12 @@ class _DashboardTransactionTile extends StatelessWidget {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    amountLabel,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 6),
+                 children: [
+                   Text(
+                     amountLabel,
+                     style: Theme.of(context).textTheme.titleSmall,
+                   ),
+                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,

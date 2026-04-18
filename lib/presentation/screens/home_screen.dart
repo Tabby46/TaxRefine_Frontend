@@ -15,6 +15,7 @@ import 'package:taxrefine/logic/dashboard/dashboard_summary_cubit.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_state.dart';
+import 'package:taxrefine/presentation/widgets/category_selection_dialog.dart';
 import 'package:taxrefine/presentation/widgets/transaction_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -269,8 +270,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                     final receiptFile = await _pickReceiptFile(
                                       context,
                                     );
+                                    
+                                    if (!mounted) return false;
+                                    
+                                    // Show category selection dialog
+                                    final selectedCategoryId = await showDialog<int?>(
+                                      context: context,
+                                      builder: (context) =>
+                                          const CategorySelectionDialog(),
+                                    );
+                                    
+                                    if (selectedCategoryId == null) {
+                                      // User cancelled category selection
+                                      return false;
+                                    }
+                                    
                                     return cubit.swipe(
                                       isBusiness: true,
+                                      categoryId: selectedCategoryId,
                                       swipedIndex: previousIndex,
                                       receiptFile: receiptFile,
                                     );

@@ -35,6 +35,7 @@ class TransactionCubit extends Cubit<TransactionState> {
   Future<bool> swipe({
     required bool isBusiness,
     required int swipedIndex,
+    int? categoryId,
     File? receiptFile,
   }) async {
     final current = state;
@@ -64,6 +65,7 @@ class TransactionCubit extends Cubit<TransactionState> {
       final updated = await _repository.swipeTransaction(
         transaction: transaction,
         isBusiness: isBusiness,
+        categoryId: categoryId,
       );
 
       final remaining = List<TransactionModel>.from(current.transactions)

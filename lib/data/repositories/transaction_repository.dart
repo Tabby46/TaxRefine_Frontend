@@ -8,6 +8,7 @@ abstract class TransactionRepository {
   Future<TransactionModel> swipeTransaction({
     required TransactionModel transaction,
     required bool isBusiness,
+    int? categoryId,
     String? receiptContent,
     String? receiptFileName,
     String? receiptMimeType,
@@ -76,6 +77,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
   Future<TransactionModel> swipeTransaction({
     required TransactionModel transaction,
     required bool isBusiness,
+    int? categoryId,
     String? receiptContent,
     String? receiptFileName,
     String? receiptMimeType,
@@ -84,7 +86,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       final response = await _apiProvider.swipeTransaction(
         transactionId: transaction.id,
         isBusiness: isBusiness,
-        categoryId: transaction.categoryId,
+        categoryId: categoryId ?? transaction.categoryId,
         receiptContent: receiptContent,
         receiptFileName: receiptFileName,
         receiptMimeType: receiptMimeType,

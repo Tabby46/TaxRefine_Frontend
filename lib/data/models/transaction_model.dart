@@ -6,7 +6,7 @@ class TransactionModel extends Equatable {
     required this.merchantName,
     required this.amount,
     this.potentialTaxDeduction,
-    this.categoryId = 101,
+    this.categoryId = 10,
     this.isBusiness,
     this.taxCategory,
     this.transactionDate,
@@ -33,7 +33,7 @@ class TransactionModel extends Equatable {
       potentialTaxDeduction:
           (json['potentialTaxDeduction'] as num?)?.toDouble() ??
           (json['estimatedDeduction'] as num?)?.toDouble(),
-      categoryId: (json['categoryId'] as int?) ?? 101,
+      categoryId: (json['categoryId'] as int?) ?? 10,
       isBusiness: json['isBusiness'] as bool?,
       taxCategory: _normalizeCategory(
         (json['taxCategory'] as String?) ?? (json['tax_category'] as String?),
