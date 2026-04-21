@@ -1,7 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:path/path.dart' as path;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:taxrefine/core/auth/auth_session.dart';
 import 'package:taxrefine/core/constants/api_constants.dart';
@@ -18,6 +24,7 @@ import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/presentation/screens/history_screen.dart';
 import 'package:taxrefine/presentation/widgets/category_breakdown_list.dart';
 import 'package:taxrefine/presentation/widgets/compact_dashboard_header.dart';
+import 'package:taxrefine/presentation/widgets/category_selection_dialog.dart';
 import 'package:taxrefine/presentation/widgets/deduction_pie_chart.dart';
 
 class TransactionDashboardScreen extends StatefulWidget {
@@ -535,6 +542,76 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
     return AppStrings.loadingTransactionsFailed;
   }
 
+  Future<File?> _pickReceiptFile(BuildContext context) async {
+    final source = await _selectImageSource(context);
+    if (source == null) {
+      return null;
+    }
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      maxWidth: 1800,
+      imageQuality: 88,
+    );
+
+    if (picked == null) {
+      return null;
+    }
+    return File(picked.path);
+  }
+
+  Future<ImageSource?> _selectImageSource(BuildContext context) async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text(AppStrings.takePhotoOption),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text(AppStrings.uploadReceiptOption),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Directly refreshes the category breakdown list and pie chart from the API.
+  /// This is called in parallel with other refreshes so the breakdown stays
+  /// in sync even when the DeductionSummary totals haven't changed (Equatable
+  /// suppresses BlocListener re-fires for identical states).
+  Future<void> _refreshCategoryBreakdown() async {
+    try {
+      final userId = ApiConstants.resolveUserId(AuthSession.userId);
+      final response = await _apiProvider.fetchCategoryBreakdown(
+        userId: userId,
+      );
+      final payload = response.data;
+      if (payload is! List) return;
+      final breakdown = payload
+          .whereType<Map<String, dynamic>>()
+          .map(CategoryBreakdown.fromJson)
+          .toList();
+      if (mounted) {
+        setState(() {
+          _categories = DashboardCategoryService.filterEmpty(breakdown);
+        });
+      }
+    } catch (_) {
+      // Non-critical — silently ignore
+    }
+  }
+
   Future<void> _handleSwipeAction(
     TransactionModel transaction,
     String targetCategory,
@@ -543,6 +620,41 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
       return;
     }
 
+    int? selectedCategoryId;
+    String? receiptContent;
+    String? receiptFileName;
+    String? receiptMimeType;
+
+    // If marking as BUSINESS, first show category selection dialog
+    if (targetCategory == 'BUSINESS') {
+      // Show receipt upload option first (same as Swipe page)
+      final receiptFile = await _pickReceiptFile(context);
+      if (!mounted) return;
+
+      // Show category selection dialog
+      selectedCategoryId = await showDialog<int?>(
+        context: context,
+        builder: (context) => CategorySelectionDialog(),
+      );
+
+      if (selectedCategoryId == null) {
+        // User cancelled - close slidable and do nothing
+        if (mounted) {
+          Slidable.of(context)?.close();
+        }
+        return;
+      }
+
+      // Process receipt file if selected
+      if (receiptFile != null) {
+        final bytes = await receiptFile.readAsBytes();
+        receiptContent = base64Encode(bytes);
+        receiptFileName = path.basename(receiptFile.path);
+        receiptMimeType = 'image/jpeg';
+      }
+    }
+
+    // Only perform optimistic UI update AFTER user has completed all selections
     final originalIndex = _transactions.indexWhere(
       (t) => t.id == transaction.id,
     );
@@ -551,7 +663,12 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
     }
 
     final originalItem = _transactions[originalIndex];
-    final shouldRemoveOptimistically = _filter == _DashboardFilter.needsReview;
+    // Remove optimistically when the transaction no longer belongs in the current filter
+    final shouldRemoveOptimistically =
+        _filter == _DashboardFilter.needsReview ||
+        (_filter == _DashboardFilter.business &&
+            targetCategory != 'BUSINESS') ||
+        (_filter == _DashboardFilter.personal && targetCategory != 'PERSONAL');
 
     setState(() {
       _updatingTransactionIds.add(transaction.id);
@@ -571,14 +688,43 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
     });
 
     try {
-      await _apiProvider.updateTransactionTaxCategory(
-        transactionId: transaction.id,
-        taxCategory: targetCategory,
-      );
+      if (targetCategory == 'BUSINESS') {
+        // Use proper swipe endpoint that supports category and receipt
+        await _apiProvider.swipeTransaction(
+          transactionId: transaction.id,
+          isBusiness: true,
+          categoryId: selectedCategoryId!,
+          receiptContent: receiptContent,
+          receiptFileName: receiptFileName,
+          receiptMimeType: receiptMimeType,
+        );
+      } else {
+        // Simple category only for personal
+        await _apiProvider.updateTransactionTaxCategory(
+          transactionId: transaction.id,
+          taxCategory: targetCategory,
+        );
+      }
 
       if (!mounted) {
         return;
       }
+
+      // Run all dashboard refreshes in parallel for instant, unified UI update.
+      // _refreshCategoryBreakdown() is called directly so it is not blocked by
+      // Equatable suppression on DashboardSummaryLoaded (same totals => no re-emit).
+      final userId = ApiConstants.resolveUserId(AuthSession.userId);
+      await Future.wait([
+        context.read<DashboardSummaryCubit>().refreshSummary(userId),
+        context.read<HistoryCubit>().loadHistory(),
+        _refreshCategoryBreakdown(),
+        _loadReviewStatus(),
+      ]);
+
+      if (!mounted) return;
+
+      // Close slidable after all refreshes complete
+      Slidable.of(context)?.close();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -650,35 +796,66 @@ class _DashboardTransactionTile extends StatelessWidget {
     final normalizedCategory = _normalizedCategory(transaction);
     final badgeColor = _badgeColor(normalizedCategory);
 
+    final isAlreadyBusiness = normalizedCategory == 'BUSINESS';
+    final isAlreadyPersonal = normalizedCategory == 'PERSONAL';
+
     return Slidable(
       enabled: !isUpdating,
       key: ValueKey(transaction.id),
-      startActionPane: ActionPane(
-        motion: const DrawerMotion(),
-        dismissible: DismissiblePane(onDismissed: () => onMarkBusiness()),
-        children: [
-          SlidableAction(
-            onPressed: (_) => onMarkBusiness(),
-            backgroundColor: Colors.green.shade700,
-            foregroundColor: Colors.white,
-            icon: Icons.business_center,
-            label: 'BUSINESS',
-          ),
-        ],
-      ),
-      endActionPane: ActionPane(
-        motion: const DrawerMotion(),
-        dismissible: DismissiblePane(onDismissed: () => onMarkPersonal()),
-        children: [
-          SlidableAction(
-            onPressed: (_) => onMarkPersonal(),
-            backgroundColor: Colors.blueGrey.shade600,
-            foregroundColor: Colors.white,
-            icon: Icons.person,
-            label: 'PERSONAL',
-          ),
-        ],
-      ),
+      // Hide BUSINESS slide when transaction is already BUSINESS
+      startActionPane: isAlreadyBusiness
+          ? null
+          : ActionPane(
+              motion: const StretchMotion(),
+              dismissible: DismissiblePane(
+                dismissThreshold: 0.4,
+                closeOnCancel: true,
+                confirmDismiss: () async {
+                  HapticFeedback.mediumImpact();
+                  // Defer execution to next frame to allow animation to complete
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    onMarkBusiness();
+                  });
+                  // Return false to prevent automatic dismiss - handled manually
+                  return false;
+                },
+                onDismissed: () {},
+              ),
+              children: [
+                SlidableAction(
+                  onPressed: (_) => onMarkBusiness(),
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  icon: Icons.business_center,
+                  label: 'BUSINESS',
+                ),
+              ],
+            ),
+      // Hide PERSONAL slide when transaction is already PERSONAL
+      endActionPane: isAlreadyPersonal
+          ? null
+          : ActionPane(
+              motion: const StretchMotion(),
+              extentRatio: 0.85,
+              dismissible: DismissiblePane(
+                dismissThreshold: 0.4,
+                closeOnCancel: true,
+                confirmDismiss: () async {
+                  HapticFeedback.mediumImpact();
+                  return true;
+                },
+                onDismissed: onMarkPersonal,
+              ),
+              children: [
+                SlidableAction(
+                  onPressed: (_) => onMarkPersonal(),
+                  backgroundColor: Colors.blueGrey.shade600,
+                  foregroundColor: Colors.white,
+                  icon: Icons.person,
+                  label: 'PERSONAL',
+                ),
+              ],
+            ),
       child: ListTile(
         title: Text(
           transaction.merchantName,
@@ -695,12 +872,12 @@ class _DashboardTransactionTile extends StatelessWidget {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
-                 children: [
-                   Text(
-                     amountLabel,
-                     style: Theme.of(context).textTheme.titleSmall,
-                   ),
-                   const SizedBox(height: 6),
+                children: [
+                  Text(
+                    amountLabel,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,

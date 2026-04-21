@@ -30,6 +30,11 @@ class DashboardSummaryCubit extends Cubit<DashboardSummaryState> {
   }
 
   Future<void> refreshSummary(String userId) async {
+    // Determine current refresh count to force a new emission even if totals
+    // are numerically identical (Equatable would otherwise suppress the emit).
+    final currentCount = state is DashboardSummaryLoaded
+        ? (state as DashboardSummaryLoaded).refreshCount
+        : 0;
     try {
       final response = await _apiProvider.fetchDeductionSummary(userId: userId);
       final payload = response.data;
@@ -37,12 +42,11 @@ class DashboardSummaryCubit extends Cubit<DashboardSummaryState> {
         throw const FormatException('Invalid summary response');
       }
       final summary = DeductionSummary.fromJson(payload);
-      emit(DashboardSummaryLoaded(summary));
-    } on DioException catch (ex) {
-      // Silently handle refresh errors to avoid disrupting the user experience
-      emit(DashboardSummaryError(_resolveDioError(ex)));
-    } catch (ex) {
-      // Silently handle refresh errors
+      emit(DashboardSummaryLoaded(summary, refreshCount: currentCount + 1));
+    } on DioException {
+      // Silently ignore refresh errors — keep the existing loaded state visible.
+    } catch (_) {
+      // Silently ignore refresh errors.
     }
   }
 

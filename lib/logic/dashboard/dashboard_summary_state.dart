@@ -16,12 +16,15 @@ class DashboardSummaryLoading extends DashboardSummaryState {
 }
 
 class DashboardSummaryLoaded extends DashboardSummaryState {
-  const DashboardSummaryLoaded(this.summary);
+  const DashboardSummaryLoaded(this.summary, {this.refreshCount = 0});
 
   final DeductionSummary summary;
+  // Incremented on each refresh so Equatable treats identical-value reloads as
+  // a new state, ensuring BlocListeners always fire after a swipe.
+  final int refreshCount;
 
   @override
-  List<Object?> get props => [summary];
+  List<Object?> get props => [summary, refreshCount];
 }
 
 class DashboardSummaryError extends DashboardSummaryState {

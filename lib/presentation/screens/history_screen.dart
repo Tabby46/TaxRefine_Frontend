@@ -40,9 +40,9 @@ class HistoryScreen extends StatelessWidget {
 
           // Filter transactions by categoryId if filter is provided
           final filteredTransactions = categoryIdFilter != null
-              ? loaded.transactions
-                    .where((t) => t.categoryId == categoryIdFilter)
-                    .toList()
+              ? categoryIdFilter == 11
+                  ? loaded.transactions.where((t) => t.isBusiness == false).toList()
+                  : loaded.transactions.where((t) => t.categoryId == categoryIdFilter).toList()
               : loaded.transactions;
 
           if (filteredTransactions.isEmpty) {
@@ -83,6 +83,7 @@ class HistoryScreen extends StatelessWidget {
       8 => 'Utilities',
       9 => 'Equipment',
       10 => 'Other Business',
+      11 => 'Personal',
       _ => 'Category $categoryId',
     };
   }
@@ -209,6 +210,7 @@ class _HistoryListTile extends StatelessWidget {
         : Colors.grey.shade600;
     final hasReceipt = (transaction.receiptDriveId ?? '').isNotEmpty;
     final isMissingReceipt = isBusiness && !hasReceipt;
+    final hasNoCategory = isBusiness && transaction.categoryId == null;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -290,6 +292,24 @@ class _HistoryListTile extends StatelessWidget {
                           onPressed: isUploadingReceipt
                               ? null
                               : onAttachMissingReceipt,
+                        ),
+                      if (hasNoCategory)
+                        IconButton(
+                          tooltip: 'Assign business category',
+                          visualDensity: VisualDensity.compact,
+                          iconSize: 18,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 24,
+                            minHeight: 24,
+                          ),
+                          icon: Icon(
+                            Icons.add_circle_rounded,
+                            color: Colors.red.shade700,
+                          ),
+                          onPressed: () async {
+                            // TODO: Implement category selection dialog
+                          },
                         ),
                     ],
                   ),
