@@ -70,7 +70,9 @@ class _CategorySelectionDialogState extends State<CategorySelectionDialog> {
                     title: Text(
                       name,
                       style: TextStyle(
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                         color: isSelected
                             ? const Color(0xFF0B6E4F)
                             : Colors.black87,
@@ -83,7 +85,7 @@ class _CategorySelectionDialogState extends State<CategorySelectionDialog> {
                     },
                   ),
                 );
-              }).toList(),
+              }),
             ],
           ),
         ),

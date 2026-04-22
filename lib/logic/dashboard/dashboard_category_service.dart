@@ -30,7 +30,7 @@ class DashboardCategoryService {
       }
 
       // Convert backend response to CategoryBreakdown objects
-      return (payload as List<dynamic>).map((item) {
+      return (payload).map((item) {
         if (item is! Map<String, dynamic>) {
           throw const FormatException('Invalid category item');
         }
