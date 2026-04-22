@@ -1,4 +1,29 @@
+import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
+
+// 10 distinct business category colors (for list, pie, and glow)
+class CategoryColors {
+  static const List<Color> business = [
+    Color(0xFF00D1FF), // Travel - Neon Blue
+    Color(0xFF00FF66), // Meals - Neon Green
+    Color(0xFFFFC300), // Office Supplies - Neon Yellow
+    Color(0xFFFF3B30), // Software - Neon Red
+    Color(0xFF9B59FF), // Phone - Neon Purple
+    Color(0xFFFF6F00), // Internet - Neon Orange
+    Color(0xFF00FFD0), // Office Rent - Neon Aqua
+    Color(0xFF00FFEA), // Utilities - Neon Cyan
+    Color(0xFFFF00E0), // Equipment - Neon Pink
+    Color(0xFFB6FF00), // Other Business - Neon Lime
+  ];
+
+  static Color forCategoryId(int categoryId) {
+    // categoryId is 1-based, fallback to blue
+    if (categoryId >= 1 && categoryId <= 10) {
+      return business[categoryId - 1];
+    }
+    return const Color(0xFF00D1FF);
+  }
+}
 
 class CategoryBreakdown extends Equatable {
   const CategoryBreakdown({

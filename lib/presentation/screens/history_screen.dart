@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:taxrefine/core/constants/app_strings.dart';
 import 'package:taxrefine/data/models/transaction_model.dart';
+import 'package:taxrefine/core/theme/app_theme.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/logic/history/history_state.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -41,8 +42,12 @@ class HistoryScreen extends StatelessWidget {
           // Filter transactions by categoryId if filter is provided
           final filteredTransactions = categoryIdFilter != null
               ? categoryIdFilter == 11
-                  ? loaded.transactions.where((t) => t.isBusiness == false).toList()
-                  : loaded.transactions.where((t) => t.categoryId == categoryIdFilter).toList()
+                    ? loaded.transactions
+                          .where((t) => t.isBusiness == false)
+                          .toList()
+                    : loaded.transactions
+                          .where((t) => t.categoryId == categoryIdFilter)
+                          .toList()
               : loaded.transactions;
 
           if (filteredTransactions.isEmpty) {
@@ -207,13 +212,18 @@ class _HistoryListTile extends StatelessWidget {
 
     final badgeColor = isBusiness
         ? Colors.green.shade700
-        : Colors.grey.shade600;
+        : NeonColors.personalBlue;
     final hasReceipt = (transaction.receiptDriveId ?? '').isNotEmpty;
     final isMissingReceipt = isBusiness && !hasReceipt;
     final hasNoCategory = isBusiness && transaction.categoryId == null;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
@@ -227,10 +237,17 @@ class _HistoryListTile extends StatelessWidget {
                     transaction.merchantName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 4),
-                  Text(dateLabel, style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    dateLabel,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 6,
@@ -264,7 +281,10 @@ class _HistoryListTile extends StatelessWidget {
                             minWidth: 24,
                             minHeight: 24,
                           ),
-                          icon: const Icon(Icons.folder_open_rounded),
+                          icon: const Icon(
+                            Icons.folder_open_rounded,
+                            color: Colors.white70,
+                          ),
                           onPressed: () => _openReceiptInDrive(context),
                         ),
                       if (isMissingReceipt)
@@ -324,7 +344,9 @@ class _HistoryListTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: Colors.white),
               ),
             ),
           ],

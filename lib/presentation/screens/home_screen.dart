@@ -243,6 +243,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                       state.uploadingTransactionId ==
                                           transaction.id;
 
+                                  // Animate neon border based on swipe direction and intensity
+                                  String? swipeDirection;
+                                  double borderGlow = 0.0;
+                                  if (horizontalThresholdPercentage.abs() > 2) {
+                                    if (horizontalThresholdPercentage > 0) {
+                                      swipeDirection = 'right';
+                                      borderGlow =
+                                          (horizontalThresholdPercentage /
+                                                  100.0)
+                                              .clamp(0.0, 1.0);
+                                    } else if (horizontalThresholdPercentage <
+                                        0) {
+                                      swipeDirection = 'left';
+                                      borderGlow =
+                                          (-horizontalThresholdPercentage /
+                                                  100.0)
+                                              .clamp(0.0, 1.0);
+                                    }
+                                  }
+
                                   return TransactionCard(
                                     transaction: transaction,
                                     isUploadingReceipt: uploadingThisCard,
@@ -260,6 +280,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                         file: file,
                                       );
                                     },
+                                    swipeDirection: swipeDirection,
+                                    borderGlow: borderGlow,
                                   );
                                 },
                             onSwipe:
@@ -270,21 +292,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                     final receiptFile = await _pickReceiptFile(
                                       context,
                                     );
-                                    
+
                                     if (!mounted) return false;
-                                    
+
                                     // Show category selection dialog
-                                    final selectedCategoryId = await showDialog<int?>(
-                                      context: context,
-                                      builder: (context) =>
-                                          const CategorySelectionDialog(),
-                                    );
-                                    
+                                    final selectedCategoryId =
+                                        await showDialog<int?>(
+                                          context: context,
+                                          builder: (context) =>
+                                              const CategorySelectionDialog(),
+                                        );
+
                                     if (selectedCategoryId == null) {
                                       // User cancelled category selection
                                       return false;
                                     }
-                                    
+
                                     return cubit.swipe(
                                       isBusiness: true,
                                       categoryId: selectedCategoryId,

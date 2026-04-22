@@ -26,6 +26,7 @@ import 'package:taxrefine/presentation/widgets/category_breakdown_list.dart';
 import 'package:taxrefine/presentation/widgets/compact_dashboard_header.dart';
 import 'package:taxrefine/presentation/widgets/category_selection_dialog.dart';
 import 'package:taxrefine/presentation/widgets/deduction_pie_chart.dart';
+import 'package:taxrefine/core/theme/app_theme.dart';
 
 class TransactionDashboardScreen extends StatefulWidget {
   const TransactionDashboardScreen({super.key, this.refreshNotifier});
@@ -919,7 +920,7 @@ class _DashboardTransactionTile extends StatelessWidget {
       case 'BUSINESS':
         return Colors.green.shade700;
       case 'PERSONAL':
-        return Colors.blueGrey.shade600;
+        return NeonColors.personalBlue;
       default:
         return Colors.grey.shade600;
     }

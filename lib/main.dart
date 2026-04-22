@@ -51,6 +51,8 @@ class TaxRefineApp extends StatelessWidget {
     return MaterialApp(
       title: AppStrings.appTitle,
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       builder: DevicePreview.appBuilder,
       locale: DevicePreview.locale(context),
       home: BlocProvider(

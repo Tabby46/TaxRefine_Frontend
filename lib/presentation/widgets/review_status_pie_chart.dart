@@ -8,7 +8,9 @@ class ReviewStatusPieChart extends StatelessWidget {
   final ReviewStatus reviewStatus;
 
   static const Color businessColor = Color(0xFF24E62A); // Bright Green
-  static const Color personalColor = Color(0xFF5AAFF4); // Bright Blue
+  static const Color personalColor = Color(
+    0xFF00D1FF,
+  ); // Neon Sky Blue (match NeonColors.personalBlue)
   static const Color unreviewedColor = Color(0xFFF3C324); // Bright Amber
 
   @override

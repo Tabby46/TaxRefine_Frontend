@@ -14,18 +14,7 @@ class DeductionPieChart extends StatelessWidget {
   final double totalAmount;
   final Function(int categoryId)? onTap;
 
-  static const List<Color> chartColors = [
-    Color(0xFF0B6E4F), // Primary teal
-    Color(0xFF15A08C), // Light teal
-    Color(0xFF2FB598), // Medium teal
-    Color(0xFF48C9B0), // Lighter teal
-    Color(0xFF64D9C4), // Pale teal
-    Color(0xFF1B5E7F), // Deep blue
-    Color(0xFF2A7FA3), // Medium blue
-    Color(0xFF3BA0C8), // Light blue
-    Color(0xFF4CB8D9), // Sky blue
-    Color(0xFF6DD4E8), // Very light blue
-  ];
+  // Use new business category colors
 
   @override
   Widget build(BuildContext context) {
@@ -50,13 +39,17 @@ class DeductionPieChart extends StatelessWidget {
   }
 
   List<PieChartSectionData> _buildPieSections() {
-    final sumCategories = categories.fold<double>(0, (sum, cat) => sum + cat.totalAmount);
-    
+    final sumCategories = categories.fold<double>(
+      0,
+      (sum, cat) => sum + cat.totalAmount,
+    );
+
     return categories.asMap().entries.map((entry) {
-      final index = entry.key;
       final category = entry.value;
-      final color = chartColors[index % chartColors.length];
-      final percentage = sumCategories > 0 ? (category.totalAmount / sumCategories) * 100 : 0;
+      final color = CategoryColors.forCategoryId(category.categoryId);
+      final percentage = sumCategories > 0
+          ? (category.totalAmount / sumCategories) * 100
+          : 0;
 
       return PieChartSectionData(
         color: color,

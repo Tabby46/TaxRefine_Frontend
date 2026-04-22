@@ -68,11 +68,15 @@ class DashboardBreakdownMetrics extends StatelessWidget {
     required String title,
     required String amount,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(left: BorderSide(color: color, width: 4)),
-        color: Colors.grey.shade50,
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey.shade200,
+          width: 1,
+        ),
+        color: isDark ? Colors.black : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -86,9 +90,10 @@ class DashboardBreakdownMetrics extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
               ],
@@ -96,10 +101,17 @@ class DashboardBreakdownMetrics extends StatelessWidget {
           ),
           Text(
             amount,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black,
+            ),
           ),
           const SizedBox(width: 8),
-          Icon(Icons.chevron_right, color: Colors.grey.shade400),
+          Icon(
+            Icons.chevron_right,
+            color: isDark ? Colors.white38 : Colors.grey.shade400,
+          ),
         ],
       ),
     );
