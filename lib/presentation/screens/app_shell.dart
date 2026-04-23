@@ -10,12 +10,109 @@ import 'package:taxrefine/presentation/screens/history_screen.dart';
 import 'package:taxrefine/presentation/screens/home_screen.dart';
 import 'package:taxrefine/presentation/screens/profile_screen.dart';
 import 'package:taxrefine/presentation/screens/transaction_dashboard_screen.dart';
+import 'dart:ui'; // for BackdropFilter
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
   @override
   State<AppShell> createState() => _AppShellState();
+}
+
+class _CustomBottomNavBar extends StatelessWidget {
+  final int currentIndex; // currently selected index
+  final ValueChanged<int> onTap; // tap callback
+
+  const _CustomBottomNavBar({required this.currentIndex, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(12), // spacing from edges
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30), // rounded corners
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20), // glass blur
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.4), // glass background
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.6),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ],
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildItem(
+                    Icons.swipe_right_alt_rounded,
+                    AppStrings.tabSwipe,
+                    0,
+                  ),
+                  _buildItem(Icons.history_rounded, AppStrings.tabHistory, 1),
+                  _buildItem(
+                    Icons.account_balance_wallet_rounded,
+                    AppStrings.tabDashboard,
+                    2,
+                  ),
+                  _buildItem(
+                    Icons.person_outline_rounded,
+                    AppStrings.tabProfile,
+                    3,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItem(IconData icon, String label, int index) {
+    final bool isSelected = currentIndex == index; // check active tab
+
+    return Material(
+      color: Colors.transparent, // needed for InkWell ripple
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20), // match container radius
+        onTap: () => onTap(index), // tap callback
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250), // smooth animation
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20), // same radius
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // compact layout
+            children: [
+              Icon(
+                icon,
+                color: isSelected
+                    ? const Color(0xFF00FF9C) // active color
+                    : Colors.grey, // inactive
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? const Color(0xFF00FF9C) : Colors.grey,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _AppShellState extends State<AppShell> {
@@ -62,41 +159,19 @@ class _AppShellState extends State<AppShell> {
           ProfileScreen(user: currentUser),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: _CustomBottomNavBar(
         currentIndex: _currentIndex,
-        selectedItemColor: const Color(0xFF0B6E4F),
-        unselectedItemColor: Colors.grey.shade700,
-        showUnselectedLabels: true,
-        backgroundColor: Colors.white,
         onTap: (index) {
           setState(() => _currentIndex = index);
+
           if (index == 1) {
             context.read<HistoryCubit>().loadHistory();
           }
           if (index == 2) {
             _dashboardRefreshNotifier.value++;
-            // Load the summary when navigating to the dashboard tab
             context.read<DashboardSummaryCubit>().loadSummary(userId);
           }
         },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.swipe_right_alt_rounded),
-            label: AppStrings.tabSwipe,
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history_rounded),
-            label: AppStrings.tabHistory,
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_rounded),
-            label: AppStrings.tabDashboard,
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            label: AppStrings.tabProfile,
-          ),
-        ],
       ),
     );
   }
