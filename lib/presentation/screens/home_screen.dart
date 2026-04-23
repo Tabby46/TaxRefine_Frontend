@@ -29,6 +29,23 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isPlaidLinking = false;
   bool _isPlaidSyncing = false;
 
+  Future<void> _playSwipeFeedback(CardSwiperDirection direction) async {
+    await SystemSound.play(SystemSoundType.click);
+
+    if (direction == CardSwiperDirection.right) {
+      await HapticFeedback.mediumImpact();
+      await Future<void>.delayed(const Duration(milliseconds: 42));
+      await HapticFeedback.lightImpact();
+      return;
+    }
+
+    if (direction == CardSwiperDirection.left) {
+      await HapticFeedback.lightImpact();
+      await Future<void>.delayed(const Duration(milliseconds: 36));
+      await HapticFeedback.selectionClick();
+    }
+  }
+
   Future<void> _pollPendingTransactionsAfterLink() async {
     final cubit = context.read<TransactionCubit>();
     const maxAttempts = 6;
@@ -293,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       context,
                                     );
 
-                                    if (!mounted) return false;
+                                    if (!context.mounted) return false;
 
                                     // Show category selection dialog
                                     final selectedCategoryId =
@@ -308,6 +325,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       return false;
                                     }
 
+                                    await _playSwipeFeedback(direction);
                                     return cubit.swipe(
                                       isBusiness: true,
                                       categoryId: selectedCategoryId,
@@ -316,12 +334,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     );
                                   }
                                   if (direction == CardSwiperDirection.left) {
-                                    return context
-                                        .read<TransactionCubit>()
-                                        .swipe(
-                                          isBusiness: false,
-                                          swipedIndex: previousIndex,
-                                        );
+                                    final cubit = context
+                                        .read<TransactionCubit>();
+                                    await _playSwipeFeedback(direction);
+                                    return cubit.swipe(
+                                      isBusiness: false,
+                                      swipedIndex: previousIndex,
+                                    );
                                   }
                                   return false;
                                 },

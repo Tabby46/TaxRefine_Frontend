@@ -1,4 +1,3 @@
-import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -28,12 +27,7 @@ Future<void> main() async {
     // Optional for local/dev environments where .env may not exist.
   });
 
-  runApp(
-    DevicePreview(
-      enabled: kDebugMode,
-      builder: (context) => const TaxRefineApp(),
-    ),
-  );
+  runApp(const TaxRefineApp());
 }
 
 class TaxRefineApp extends StatelessWidget {
@@ -53,8 +47,6 @@ class TaxRefineApp extends StatelessWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
-      builder: DevicePreview.appBuilder,
-      locale: DevicePreview.locale(context),
       home: BlocProvider(
         create: (_) => AuthCubit(authRepository)..restoreSession(),
         child: BlocBuilder<AuthCubit, AuthState>(

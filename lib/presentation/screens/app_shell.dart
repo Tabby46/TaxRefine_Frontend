@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taxrefine/core/auth/auth_session.dart';
@@ -83,7 +84,10 @@ class _CustomBottomNavBar extends StatelessWidget {
       color: Colors.transparent, // needed for InkWell ripple
       child: InkWell(
         borderRadius: BorderRadius.circular(20), // match container radius
-        onTap: () => onTap(index), // tap callback
+        onTap: () async {
+          await HapticFeedback.selectionClick();
+          onTap(index);
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250), // smooth animation
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

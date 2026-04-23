@@ -812,11 +812,10 @@ class _DashboardTransactionTile extends StatelessWidget {
                 dismissThreshold: 0.4,
                 closeOnCancel: true,
                 confirmDismiss: () async {
-                  HapticFeedback.mediumImpact();
-                  // Defer execution to next frame to allow animation to complete
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    onMarkBusiness();
-                  });
+                  await HapticFeedback.mediumImpact();
+                  // Always vibrate, even after popups
+                  await Future.delayed(const Duration(milliseconds: 40));
+                  onMarkBusiness();
                   // Return false to prevent automatic dismiss - handled manually
                   return false;
                 },
@@ -824,7 +823,10 @@ class _DashboardTransactionTile extends StatelessWidget {
               ),
               children: [
                 SlidableAction(
-                  onPressed: (_) => onMarkBusiness(),
+                  onPressed: (_) async {
+                    await HapticFeedback.selectionClick();
+                    onMarkBusiness();
+                  },
                   backgroundColor: Colors.green.shade700,
                   foregroundColor: Colors.white,
                   icon: Icons.business_center,

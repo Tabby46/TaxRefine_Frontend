@@ -1,6 +1,5 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:taxrefine/core/constants/app_strings.dart';
 
@@ -10,7 +9,7 @@ import 'package:intl/intl.dart';
 
 import 'package:taxrefine/data/models/transaction_model.dart';
 
-class TransactionCard extends StatelessWidget {
+class TransactionCard extends StatefulWidget {
   const TransactionCard({
     required this.transaction,
 
@@ -36,6 +35,33 @@ class TransactionCard extends StatelessWidget {
   final String? swipeDirection; // 'left', 'right', or null
 
   @override
+  State<TransactionCard> createState() => _TransactionCardState();
+}
+
+class _TransactionCardState extends State<TransactionCard> {
+  String? _lastPrimedDirection;
+
+  @override
+  void didUpdateWidget(covariant TransactionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final direction = widget.swipeDirection;
+    final crossedPrimeThreshold =
+        widget.borderGlow >= 0.35 && oldWidget.borderGlow < 0.35;
+
+    if (direction == null || widget.borderGlow < 0.08) {
+      _lastPrimedDirection = null;
+      return;
+    }
+
+    if (crossedPrimeThreshold && _lastPrimedDirection != direction) {
+      _lastPrimedDirection = direction;
+      HapticFeedback.selectionClick();
+      SystemSound.play(SystemSoundType.click);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final currency = NumberFormat.simpleCurrency();
 
@@ -44,10 +70,14 @@ class TransactionCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     // Neon glow intensity for border
-
-    final double leftGlow = swipeDirection == 'left' ? borderGlow : 0.12;
-
-    final double rightGlow = swipeDirection == 'right' ? borderGlow : 0.12;
+    final double leftGlow = widget.swipeDirection == 'left'
+        ? widget.borderGlow
+        : 0.12;
+    final double rightGlow = widget.swipeDirection == 'right'
+        ? widget.borderGlow
+        : 0.12;
+    // Reduce top/bottom glow area by 50%
+    const double verticalGlowAreaFactor = 0.5;
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.85,
@@ -60,64 +90,48 @@ class TransactionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
 
         boxShadow: [
-          // Blue Neon Glow: left edge and bottom-left
+          // Blue Neon Glow: left edge
           BoxShadow(
             color: NeonColors.personalBlue.withOpacity(
               isDark ? 0.38 * (0.5 + leftGlow) : 0.18 * (0.5 + leftGlow),
             ),
-
             blurRadius: 32 * (0.5 + leftGlow),
-
             offset: const Offset(-8, 0),
-
             spreadRadius: 1,
           ),
-
+          // Blue Neon Glow: bottom-left (reduce area by 50%)
           BoxShadow(
             color: NeonColors.personalBlue.withOpacity(
               isDark ? 0.32 * (0.5 + leftGlow) : 0.12 * (0.5 + leftGlow),
             ),
-
-            blurRadius: 48 * (0.5 + leftGlow),
-
-            offset: const Offset(-8, 24),
-
-            spreadRadius: 2,
+            blurRadius: 24 * (0.5 + leftGlow), // 50% of previous 48
+            offset: const Offset(-8, 12), // 50% of previous 24
+            spreadRadius: 1, // 50% of previous 2
           ),
-
-          // Green Neon Glow: right edge and top-right
+          // Green Neon Glow: right edge
           BoxShadow(
             color: NeonColors.businessGreen.withOpacity(
               isDark ? 0.38 * (0.5 + rightGlow) : 0.18 * (0.5 + rightGlow),
             ),
-
             blurRadius: 32 * (0.5 + rightGlow),
-
             offset: const Offset(8, 0),
-
             spreadRadius: 1,
           ),
-
+          // Green Neon Glow: top-right (reduce area by 50%)
           BoxShadow(
             color: NeonColors.businessGreen.withOpacity(
               isDark ? 0.32 * (0.5 + rightGlow) : 0.12 * (0.5 + rightGlow),
             ),
-
-            blurRadius: 48 * (0.5 + rightGlow),
-
-            offset: const Offset(8, -24),
-
-            spreadRadius: 2,
+            blurRadius: 24 * (0.5 + rightGlow), // 50% of previous 48
+            offset: const Offset(8, -12), // 50% of previous -24
+            spreadRadius: 1, // 50% of previous 2
           ),
-
           // Subtle shadow for card
           BoxShadow(
             color: isDark
                 ? Colors.black.withOpacity(0.7)
                 : Colors.grey.withOpacity(0.10),
-
             blurRadius: isDark ? 32 : 18,
-
             offset: const Offset(0, 8),
           ),
         ],
@@ -225,7 +239,7 @@ class TransactionCard extends StatelessWidget {
 
               children: [
                 Text(
-                  transaction.merchantName,
+                  widget.transaction.merchantName,
 
                   style: theme.textTheme.headlineSmall,
                 ),
@@ -238,7 +252,7 @@ class TransactionCard extends StatelessWidget {
                   child: IconButton(
                     tooltip: AppStrings.uploadReceiptTooltip,
 
-                    icon: isUploadingReceipt
+                    icon: widget.isUploadingReceipt
                         ? const SizedBox(
                             width: 20,
 
@@ -248,11 +262,13 @@ class TransactionCard extends StatelessWidget {
                           )
                         : const Icon(Icons.camera_alt_outlined),
 
-                    onPressed: isUploadingReceipt ? null : onAttachReceipt,
+                    onPressed: widget.isUploadingReceipt
+                        ? null
+                        : widget.onAttachReceipt,
                   ),
                 ),
 
-                if (isUploadingReceipt)
+                if (widget.isUploadingReceipt)
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
 
@@ -294,7 +310,7 @@ class TransactionCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 Text(
-                  currency.format(transaction.amount),
+                  currency.format(widget.transaction.amount),
 
                   style: theme.textTheme.titleLarge?.copyWith(
                     color: NeonColors.businessGreen,
