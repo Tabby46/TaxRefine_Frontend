@@ -33,18 +33,18 @@ class DioClient {
           handler.next(options);
         },
         onResponse: (response, handler) {
-          if (kDebugMode && _isTransactionRequest(response.requestOptions)) {
+          if (kDebugMode && _shouldLog(response.requestOptions)) {
             debugPrint(
-              '[API][TRANSACTIONS] ${response.requestOptions.method} '
+              '[API] ${response.requestOptions.method} '
               '${response.requestOptions.path} -> ${response.statusCode}',
             );
           }
           handler.next(response);
         },
         onError: (error, handler) {
-          if (kDebugMode && _isTransactionRequest(error.requestOptions)) {
+          if (kDebugMode && _shouldLog(error.requestOptions)) {
             debugPrint(
-              '[API][TRANSACTIONS][ERROR] ${error.requestOptions.method} '
+              '[API][ERROR] ${error.requestOptions.method} '
               '${error.requestOptions.path} -> ${error.response?.statusCode ?? 'NO_STATUS'} '
               '(${error.type.name})',
             );
@@ -58,7 +58,8 @@ class DioClient {
   final Dio dio;
   final String _userId;
 
-  bool _isTransactionRequest(RequestOptions options) {
-    return options.path.contains('/transactions');
+  bool _shouldLog(RequestOptions options) {
+    return options.path.contains('/transactions') ||
+        options.path.contains('/reports/');
   }
 }

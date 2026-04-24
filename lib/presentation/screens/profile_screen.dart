@@ -8,6 +8,8 @@ import 'package:taxrefine/data/models/user_model.dart';
 import 'package:taxrefine/data/services/plaid_integration_service.dart';
 import 'package:taxrefine/features/profile/cubit/bank_connection_cubit.dart';
 import 'package:taxrefine/features/profile/screens/linked_banks_screen.dart';
+import 'package:taxrefine/logic/export/export_service.dart';
+import 'package:taxrefine/presentation/widgets/tax_export_modal.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({required this.user, super.key});
@@ -113,6 +115,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.logout,
             title: 'Log Out',
             color: Colors.red,
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.file_download_outlined),
+            title: const Text('Export Tax Report'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              final dioClient = DioClient();
+              final exportService = ExportService(dioClient);
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (_) => TaxExportModal(exportService: exportService),
+              );
+            },
           ),
         ],
       ),

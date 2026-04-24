@@ -30,6 +30,8 @@ import 'package:taxrefine/core/theme/app_theme.dart';
 import 'package:taxrefine/data/models/categorization_rule_model.dart';
 import 'package:taxrefine/data/providers/categorization_rule_api_provider.dart';
 import 'package:taxrefine/presentation/widgets/rule_prompt_bottom_sheet.dart';
+import 'package:taxrefine/logic/export/export_service.dart';
+import 'package:taxrefine/presentation/widgets/tax_export_modal.dart';
 
 class TransactionDashboardScreen extends StatefulWidget {
   const TransactionDashboardScreen({super.key, this.refreshNotifier});
@@ -62,12 +64,14 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
   final Set<String> _merchantsWithRules = <String>{};
   late final AnimationController _pullHintController;
   late final CategorizationRuleApiProvider _ruleProvider;
+  late final ExportService _exportService;
 
   @override
   void initState() {
     super.initState();
     _apiProvider = TransactionApiProvider(DioClient());
     _ruleProvider = CategorizationRuleApiProvider(DioClient());
+    _exportService = ExportService(DioClient());
     _pullHintController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -269,10 +273,30 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
     );
   }
 
+  void _showExportModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => TaxExportModal(exportService: _exportService),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.transactionDashboardTitle)),
+      appBar: AppBar(
+        title: const Text(AppStrings.transactionDashboardTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share_rounded),
+            tooltip: 'Export Tax Report',
+            onPressed: _showExportModal,
+          ),
+        ],
+      ),
       body: BlocListener<DashboardSummaryCubit, DashboardSummaryState>(
         listenWhen: (previous, current) {
           return current is DashboardSummaryLoaded;
@@ -320,6 +344,25 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
                       CompactDashboardHeader(
                         summary: state.summary,
                         reviewStatus: _reviewStatus,
+                      ),
+                      // Export Tax Report button
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: OutlinedButton.icon(
+                          onPressed: _showExportModal,
+                          icon: const Icon(Icons.file_download_outlined),
+                          label: const Text('Export Tax Report'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0B6E4F),
+                            side: const BorderSide(
+                              color: Color(0x660B6E4F), // 40% opacity green
+                            ),
+                            minimumSize: const Size.fromHeight(44),
+                          ),
+                        ),
                       ),
                       // Pie chart with dynamic category breakdown data
                       if (_categories.isNotEmpty)
