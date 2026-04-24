@@ -27,6 +27,9 @@ import 'package:taxrefine/presentation/widgets/compact_dashboard_header.dart';
 import 'package:taxrefine/presentation/widgets/category_selection_dialog.dart';
 import 'package:taxrefine/presentation/widgets/deduction_pie_chart.dart';
 import 'package:taxrefine/core/theme/app_theme.dart';
+import 'package:taxrefine/data/models/categorization_rule_model.dart';
+import 'package:taxrefine/data/providers/categorization_rule_api_provider.dart';
+import 'package:taxrefine/presentation/widgets/rule_prompt_bottom_sheet.dart';
 
 class TransactionDashboardScreen extends StatefulWidget {
   const TransactionDashboardScreen({super.key, this.refreshNotifier});
@@ -56,12 +59,15 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
   bool _isLoadingMore = false;
   String? _errorMessage;
   final Set<String> _updatingTransactionIds = <String>{};
+  final Set<String> _merchantsWithRules = <String>{};
   late final AnimationController _pullHintController;
+  late final CategorizationRuleApiProvider _ruleProvider;
 
   @override
   void initState() {
     super.initState();
     _apiProvider = TransactionApiProvider(DioClient());
+    _ruleProvider = CategorizationRuleApiProvider(DioClient());
     _pullHintController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -73,6 +79,7 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
     );
     _loadFirstPage();
     _loadReviewStatus();
+    _refreshCategoryBreakdown();
   }
 
   void _onExternalRefresh() {
@@ -587,6 +594,66 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
     );
   }
 
+  /// Shows the Smart Rule bottom sheet and refreshes the dashboard if the user
+  /// picks "Always" (bulkApply = true).
+  Future<void> _showRulePromptIfNeeded({
+    required String merchantName,
+    required int categoryId,
+  }) async {
+    if (!mounted) return;
+    final userId = ApiConstants.resolveUserId(AuthSession.userId);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => RulePromptBottomSheet(
+        merchantName: merchantName,
+        categoryId: categoryId,
+        userId: userId,
+        ruleProvider: _ruleProvider,
+        onRuleCreated: (CategorizationRuleModel? rule) async {
+          if (rule != null) {
+            _merchantsWithRules.add(merchantName);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Rule saved — all "$merchantName" transactions updated!',
+                  ),
+                  backgroundColor: const Color(0xFF0B6E4F),
+                ),
+              );
+              // Refresh dashboard to reflect bulk-updated transactions.
+              await Future.wait([
+                context.read<DashboardSummaryCubit>().refreshSummary(userId),
+                context.read<HistoryCubit>().loadHistory(),
+                _refreshCategoryBreakdown(),
+                _loadReviewStatus(),
+              ]);
+              if (mounted) {
+                setState(() {
+                  for (final t in _transactions) {
+                    if (t.merchantName == merchantName) {
+                      final idx = _transactions.indexOf(t);
+                      _transactions[idx] = t.copyWith(
+                        categoryId: categoryId,
+                        isBusiness: true,
+                        taxCategory: 'BUSINESS',
+                      );
+                    }
+                  }
+                });
+              }
+            }
+          }
+        },
+      ),
+    );
+  }
+
   /// Directly refreshes the category breakdown list and pie chart from the API.
   /// This is called in parallel with other refreshes so the breakdown stays
   /// in sync even when the DeductionSummary totals haven't changed (Equatable
@@ -715,12 +782,16 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
       // _refreshCategoryBreakdown() is called directly so it is not blocked by
       // Equatable suppression on DashboardSummaryLoaded (same totals => no re-emit).
       final userId = ApiConstants.resolveUserId(AuthSession.userId);
-      await Future.wait([
-        context.read<DashboardSummaryCubit>().refreshSummary(userId),
-        context.read<HistoryCubit>().loadHistory(),
-        _refreshCategoryBreakdown(),
-        _loadReviewStatus(),
-      ]);
+      try {
+        await Future.wait([
+          context.read<DashboardSummaryCubit>().refreshSummary(userId),
+          context.read<HistoryCubit>().loadHistory(),
+          _refreshCategoryBreakdown(),
+          _loadReviewStatus(),
+        ]);
+      } catch (_) {
+        // Refresh failures are non-critical; the swipe already succeeded.
+      }
 
       if (!mounted) return;
 
@@ -736,6 +807,16 @@ class _TransactionDashboardScreenState extends State<TransactionDashboardScreen>
           ),
         ),
       );
+
+      // After a BUSINESS swipe, offer to create a rule if none exists yet.
+      if (targetCategory == 'BUSINESS' &&
+          selectedCategoryId != null &&
+          !_merchantsWithRules.contains(transaction.merchantName)) {
+        await _showRulePromptIfNeeded(
+          merchantName: transaction.merchantName,
+          categoryId: selectedCategoryId,
+        );
+      }
 
       if (shouldRemoveOptimistically && !_isLastPage) {
         await _loadPage();

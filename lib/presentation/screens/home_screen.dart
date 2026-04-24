@@ -15,7 +15,10 @@ import 'package:taxrefine/logic/dashboard/dashboard_summary_cubit.dart';
 import 'package:taxrefine/logic/history/history_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_cubit.dart';
 import 'package:taxrefine/logic/transactions/transaction_state.dart';
+import 'package:taxrefine/data/models/categorization_rule_model.dart';
+import 'package:taxrefine/data/providers/categorization_rule_api_provider.dart';
 import 'package:taxrefine/presentation/widgets/category_selection_dialog.dart';
+import 'package:taxrefine/presentation/widgets/rule_prompt_bottom_sheet.dart';
 import 'package:taxrefine/presentation/widgets/transaction_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -28,6 +31,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isPlaidLinking = false;
   bool _isPlaidSyncing = false;
+
+  late final CategorizationRuleApiProvider _ruleProvider;
+  final Set<String> _merchantsWithRules = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _ruleProvider = CategorizationRuleApiProvider(DioClient());
+  }
 
   Future<void> _playSwipeFeedback(CardSwiperDirection direction) async {
     await SystemSound.play(SystemSoundType.click);
@@ -306,6 +318,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   if (direction == CardSwiperDirection.right) {
                                     final cubit = context
                                         .read<TransactionCubit>();
+                                    // Capture the transaction before the swipe
+                                    // removes it from the cubit's list.
+                                    final transaction =
+                                        loaded.transactions[previousIndex];
                                     final receiptFile = await _pickReceiptFile(
                                       context,
                                     );
@@ -326,12 +342,27 @@ class _HomeScreenState extends State<HomeScreen> {
                                     }
 
                                     await _playSwipeFeedback(direction);
-                                    return cubit.swipe(
+                                    final success = await cubit.swipe(
                                       isBusiness: true,
                                       categoryId: selectedCategoryId,
                                       swipedIndex: previousIndex,
                                       receiptFile: receiptFile,
                                     );
+
+                                    // Offer to create a Smart Rule after a
+                                    // successful business swipe.
+                                    if (success &&
+                                        mounted &&
+                                        !_merchantsWithRules.contains(
+                                          transaction.merchantName,
+                                        )) {
+                                      await _showRulePromptIfNeeded(
+                                        merchantName: transaction.merchantName,
+                                        categoryId: selectedCategoryId,
+                                      );
+                                    }
+
+                                    return success;
                                   }
                                   if (direction == CardSwiperDirection.left) {
                                     final cubit = context
@@ -354,6 +385,43 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Future<void> _showRulePromptIfNeeded({
+    required String merchantName,
+    required int categoryId,
+  }) async {
+    if (!mounted) return;
+    final userId = ApiConstants.resolveUserId(AuthSession.userId);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => RulePromptBottomSheet(
+        merchantName: merchantName,
+        categoryId: categoryId,
+        userId: userId,
+        ruleProvider: _ruleProvider,
+        onRuleCreated: (CategorizationRuleModel? rule) {
+          if (rule != null) {
+            _merchantsWithRules.add(merchantName);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Rule saved — future "$merchantName" transactions will be auto-categorized.',
+                  ),
+                  backgroundColor: const Color(0xFF0B6E4F),
+                ),
+              );
+            }
+          }
+        },
       ),
     );
   }
